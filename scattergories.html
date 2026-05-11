@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scattergories</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=DM+Sans:wght@400;500;700&display=swap');
+
+  :root {
+    --bg: #0f0e17;
+    --surface: #1a1929;
+    --accent: #ff6b35;
+    --accent2: #f7c59f;
+    --text: #fffffe;
+    --muted: #a7a9be;
+    --green: #2ec4b6;
+    --red: #e63946;
+    --locked: #f7c59f;
+    --border: rgba(255,255,255,0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+    background-image: radial-gradient(ellipse at 20% 20%, rgba(255,107,53,0.08) 0%, transparent 60%),
+                      radial-gradient(ellipse at 80% 80%, rgba(46,196,182,0.06) 0%, transparent 60%);
+  }
+
+  h1 {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: clamp(2.2rem, 7vw, 4.5rem);
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-shadow: 4px 4px 0px rgba(255,107,53,0.3);
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+  }
+
+  .main-display {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    max-width: 960px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px;
+    flex: 1;
+    min-width: 200px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .card.letter-card::before { background: var(--accent); }
+  .card.category-card::before { background: var(--green); }
+  .card.timer-card::before { background: var(--accent2); }
+
+  .card-label {
+    font-size: 0.68rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  /* LETTER */
+  .letter-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+
+  .big-letter {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: clamp(4rem, 12vw, 7rem);
+    line-height: 1;
+    color: var(--accent);
+    text-shadow: 6px 6px 0 rgba(255,107,53,0.25);
+    display: block;
+  }
+
+  .big-letter.locked-letter {
+    color: var(--locked);
+    text-shadow: 6px 6px 0 rgba(247,197,159,0.2);
+  }
+
+  .big-letter.spin { animation: letterSpin 0.5s ease-out; }
+
+  @keyframes letterSpin {
+    0%   { transform: rotateY(0deg) scale(1.2); opacity: 0.3; }
+    50%  { transform: rotateY(180deg) scale(0.8); opacity: 0.6; }
+    100% { transform: rotateY(360deg) scale(1); opacity: 1; }
+  }
+
+  .reroll-btns {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .mini-btn {
+    padding: 5px 13px;
+    border-radius: 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.06);
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .mini-btn:hover { background: rgba(255,255,255,0.13); color: var(--text); }
+  .mini-btn.letter-mini { border-color: rgba(255,107,53,0.4); color: var(--accent); }
+  .mini-btn.letter-mini:hover { background: rgba(255,107,53,0.12); }
+  .mini-btn.letter-mini:disabled { opacity: 0.3; cursor: not-allowed; }
+  .mini-btn.cats-mini { border-color: rgba(46,196,182,0.4); color: var(--green); }
+  .mini-btn.cats-mini:hover { background: rgba(46,196,182,0.1); }
+
+  .lock-toggle-btn {
+    padding: 5px 13px;
+    border-radius: 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid rgba(255,107,53,0.4);
+    background: rgba(255,255,255,0.06);
+    color: var(--accent);
+    transition: all 0.15s;
+    margin-top: 10px;
+  }
+  .lock-toggle-btn:hover { background: rgba(255,107,53,0.12); }
+  .lock-toggle-btn.is-locked {
+    border-color: rgba(247,197,159,0.5);
+    color: var(--locked);
+    background: rgba(247,197,159,0.08);
+  }
+
+  /* CATEGORIES */
+  .category-list {
+    list-style: none;
+    text-align: left;
+    width: 100%;
+  }
+
+  .category-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 6px;
+    border-bottom: 1px solid var(--border);
+    font-size: clamp(0.9rem, 2vw, 1.1rem);
+    font-weight: 600;
+    color: var(--text);
+    animation: fadeSlide 0.35s ease-out both;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.1s;
+  }
+
+  .category-list li:last-child { border-bottom: none; }
+  .category-list li:hover { background: rgba(255,255,255,0.05); }
+
+  .category-list li.locked { color: var(--locked); }
+  .category-list li.locked .cat-num { color: var(--locked); opacity: 0.7; }
+
+  .cat-num {
+    font-family: 'Black Han Sans', sans-serif;
+    color: var(--green);
+    font-size: 0.8rem;
+    min-width: 16px;
+    opacity: 0.6;
+    flex-shrink: 0;
+  }
+
+  .cat-name { flex: 1; }
+
+  .lock-icon {
+    font-size: 0.82rem;
+    opacity: 0;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+  }
+  .category-list li:hover .lock-icon { opacity: 0.45; }
+  .category-list li.locked .lock-icon { opacity: 1; }
+
+  .placeholder-text {
+    color: var(--muted);
+    font-size: 0.95rem;
+    text-align: center;
+    padding: 20px 0;
+  }
+
+  @keyframes fadeSlide {
+    0%   { transform: translateY(6px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  .lock-hint {
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-top: 8px;
+    opacity: 0.55;
+    letter-spacing: 0.4px;
+  }
+
+  /* TIMER */
+  .timer-display {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: clamp(2.2rem, 7vw, 4rem);
+    letter-spacing: 4px;
+    color: var(--accent2);
+    transition: color 0.3s;
+  }
+  .timer-display.warning { color: var(--red); animation: pulse 0.5s infinite alternate; }
+  @keyframes pulse { from { opacity: 1; } to { opacity: 0.5; } }
+
+  .timer-controls {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .preset-btn {
+    background: rgba(247,197,159,0.1);
+    border: 1px solid rgba(247,197,159,0.3);
+    color: var(--accent2);
+    padding: 4px 11px;
+    border-radius: 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .preset-btn:hover, .preset-btn.active { background: var(--accent2); color: var(--bg); }
+
+  .custom-time {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    margin-top: 8px;
+    justify-content: center;
+  }
+  .custom-time input {
+    width: 54px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 6px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    text-align: center;
+  }
+  .custom-time button {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 9px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .custom-time button:hover { background: rgba(255,255,255,0.15); }
+
+  /* ACTIONS */
+  .actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 960px;
+    margin-bottom: 24px;
+  }
+
+  .btn {
+    padding: 13px 26px;
+    border-radius: 12px;
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.1s, box-shadow 0.1s;
+    text-transform: uppercase;
+  }
+  .btn:active { transform: scale(0.96); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 4px 20px rgba(255,107,53,0.4);
+  }
+  .btn-primary:hover { box-shadow: 0 6px 28px rgba(255,107,53,0.6); }
+
+  .btn-timer {
+    background: transparent;
+    color: var(--accent2);
+    border: 2px solid var(--accent2);
+  }
+  .btn-timer:hover { background: rgba(247,197,159,0.1); }
+  .btn-timer.running { background: var(--accent2); color: var(--bg); }
+
+  /* POOL */
+  .pool-section {
+    width: 100%;
+    max-width: 960px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .pool-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+  }
+  .pool-header h2 {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .toggle-icon { color: var(--muted); font-size: 1.1rem; transition: transform 0.2s; }
+  .toggle-icon.open { transform: rotate(180deg); }
+  .pool-body { display: none; margin-top: 14px; }
+  .pool-body.visible { display: block; }
+  .pool-body textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    padding: 12px;
+    resize: vertical;
+    min-height: 130px;
+    line-height: 1.6;
+    margin-bottom: 8px;
+  }
+  .pool-body textarea:focus { outline: none; border-color: rgba(255,107,53,0.5); }
+  .pool-meta { font-size: 0.78rem; color: var(--muted); }
+  .pool-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .small-btn {
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.06);
+    color: var(--text);
+    transition: background 0.15s;
+  }
+  .small-btn:hover { background: rgba(255,255,255,0.12); }
+
+  /* HISTORY */
+  .history-section { width: 100%; max-width: 960px; }
+  .history-label {
+    font-size: 0.68rem;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .history-pills { display: flex; flex-wrap: wrap; gap: 7px; }
+  .history-pill {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  .history-pill span { color: var(--accent); font-weight: 700; margin-right: 4px; }
+
+  @media (max-width: 500px) {
+    .main-display { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<h1>SCATTERGORIES</h1>
+<p class="subtitle">Classroom Edition</p>
+
+<div class="main-display">
+
+  <!-- LETTER -->
+  <div class="card letter-card">
+    <div class="card-label">Letter</div>
+    <div class="letter-wrapper">
+      <span class="big-letter" id="letterDisplay">?</span>
+    </div>
+    <button class="lock-toggle-btn" id="letterLockBtn" onclick="toggleLetterLock()">🔓 Lock Letter</button>
+    <div class="reroll-btns">
+      <button class="mini-btn letter-mini" id="rerollLetterBtn" onclick="rerollLetter()">↻ New Letter</button>
+    </div>
+  </div>
+
+  <!-- CATEGORIES -->
+  <div class="card category-card" style="flex:2; min-width:260px;">
+    <div class="card-label">
+      Categories
+      <span id="lockedCount" style="display:none; color:var(--locked); font-size:0.65rem;"></span>
+    </div>
+    <div id="categoryDisplay"><p class="placeholder-text">Hit Roll to start</p></div>
+    <p class="lock-hint" id="lockHint" style="display:none;">Click any category to lock it</p>
+    <div class="reroll-btns" style="margin-top:10px;">
+      <button class="mini-btn cats-mini" onclick="rerollUnlocked()">↻ Reroll Unlocked</button>
+    </div>
+  </div>
+
+  <!-- TIMER -->
+  <div class="card timer-card">
+    <div class="card-label">Timer</div>
+    <div class="timer-display" id="timerDisplay">2:00</div>
+    <div class="timer-controls">
+      <button class="preset-btn" onclick="setPreset(60)" data-sec="60">1 min</button>
+      <button class="preset-btn active" onclick="setPreset(120)" data-sec="120">2 min</button>
+      <button class="preset-btn" onclick="setPreset(180)" data-sec="180">3 min</button>
+    </div>
+    <div class="custom-time">
+      <input type="number" id="customMin" placeholder="min" min="0" max="59">
+      <span style="color:var(--muted)">:</span>
+      <input type="number" id="customSec" placeholder="sec" min="0" max="59">
+      <button onclick="setCustomTime()">Set</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="actions">
+  <button class="btn btn-primary" onclick="rollAll()">🎲 Roll Everything</button>
+  <button class="btn btn-timer" id="timerBtn" onclick="toggleTimer()">▶ Start Timer</button>
+</div>
+
+<div class="pool-section">
+  <div class="pool-header" onclick="togglePool()">
+    <h2>📝 Category Pool</h2>
+    <span class="toggle-icon" id="toggleIcon">▼</span>
+  </div>
+  <div class="pool-body" id="poolBody">
+    <textarea id="categoryPool"></textarea>
+    <div class="pool-meta" id="poolMeta"></div>
+    <div class="pool-actions">
+      <button class="small-btn" onclick="loadDefaults()">Reset to Defaults</button>
+      <button class="small-btn" onclick="clearPool()">Clear All</button>
+    </div>
+  </div>
+</div>
+
+<div class="history-section" id="historySection" style="display:none">
+  <div class="history-label">Round History</div>
+  <div class="history-pills" id="historyPills"></div>
+</div>
+
+<script>
+const DEFAULT_CATEGORIES = [
+  "Animals", "Food & Drinks", "Countries", "Things in a School",
+  "Sports", "Colors", "Boys' Names", "Girls' Names",
+  "Things in a Kitchen", "Movies", "Music Artists", "Things in a Backyard",
+  "Jobs & Careers", "Things You Find Outside", "TV Shows", "Hobbies",
+  "Things in a Bedroom", "Famous People", "Things That Are Cold",
+  "Things You Wear", "Vehicles", "Things in a City", "Fruits",
+  "Vegetables", "Card Games", "Things at the Beach", "School Subjects",
+  "Superheroes", "Things That Make Noise", "Things You Find at a Fair",
+  "Things in a Hospital", "Emotions / Feelings", "Things in a Park",
+  "Things That Are Soft", "Fast Food Items", "Things You Buy at a Store",
+  "Things That Are Orange", "Cartoon Characters", "Words That Mean 'Happy'",
+  "Things That Can Fly", "Sports Teams", "Things in a Garage",
+  "Things That Are Hot", "Famous Places", "Holiday Things",
+  "Words That Mean 'Big'", "Things That Have Wheels", "Things in a Grocery Store",
+  "Things in a Movie Theater", "Things in a Backpack"
+];
+
+const LETTERS = 'ABCDEFGHIJKLMNOPRSTW'.split('');
+
+let timerSeconds = 120;
+let timerRunning = false;
+let timerInterval = null;
+let activePreset = 120;
+
+let currentLetter = '';
+let letterLocked = false;
+let currentCategories = []; // [{text, locked}]
+let usedCategories = [];
+let history = [];
+
+// ── INIT ────────────────────────────────────────────
+function init() {
+  const saved = localStorage.getItem('scatterCategories');
+  const pool = saved ? JSON.parse(saved) : DEFAULT_CATEGORIES;
+  document.getElementById('categoryPool').value = pool.join('\n');
+  updateMeta();
+  updateTimerDisplay();
+}
+
+function getPool() {
+  return document.getElementById('categoryPool').value
+    .split('\n').map(s => s.trim()).filter(Boolean);
+}
+
+function updateMeta() {
+  const count = getPool().length;
+  document.getElementById('poolMeta').textContent = count + ' categories in pool';
+  localStorage.setItem('scatterCategories', JSON.stringify(getPool()));
+}
+document.getElementById('categoryPool').addEventListener('input', updateMeta);
+
+// ── LETTER ──────────────────────────────────────────
+function drawLetter() {
+  const letter = LETTERS[Math.floor(Math.random() * LETTERS.length)];
+  currentLetter = letter;
+  const el = document.getElementById('letterDisplay');
+  el.textContent = letter;
+  el.classList.remove('spin');
+  void el.offsetWidth;
+  el.classList.add('spin');
+  updateLetterUI();
+}
+
+function rerollLetter() {
+  if (letterLocked) return;
+  drawLetter();
+  pushHistory();
+}
+
+function toggleLetterLock() {
+  if (!currentLetter) return;
+  letterLocked = !letterLocked;
+  updateLetterUI();
+}
+
+function updateLetterUI() {
+  const btn = document.getElementById('letterLockBtn');
+  const el = document.getElementById('letterDisplay');
+  const rerollBtn = document.getElementById('rerollLetterBtn');
+  if (letterLocked) {
+    btn.textContent = '🔒 Unlock Letter';
+    btn.classList.add('is-locked');
+    el.classList.add('locked-letter');
+    rerollBtn.disabled = true;
+  } else {
+    btn.textContent = '🔓 Lock Letter';
+    btn.classList.remove('is-locked');
+    el.classList.remove('locked-letter');
+    rerollBtn.disabled = false;
+  }
+}
+
+// ── CATEGORIES ──────────────────────────────────────
+function pickFresh(count) {
+  const pool = getPool();
+  if (!pool.length) return [];
+  const picked = [];
+  for (let i = 0; i < count; i++) {
+    let avail = pool.filter(c => !usedCategories.includes(c) && !picked.includes(c));
+    if (!avail.length) {
+      usedCategories = [];
+      avail = pool.filter(c => !picked.includes(c));
+    }
+    if (!avail.length) break;
+    const cat = avail[Math.floor(Math.random() * avail.length)];
+    picked.push(cat);
+    usedCategories.push(cat);
+  }
+  return picked;
+}
+
+function rerollUnlocked() {
+  if (!currentCategories.length) return;
+  const unlockCount = currentCategories.filter(c => !c.locked).length;
+  if (unlockCount === 0) return;
+  const fresh = pickFresh(unlockCount);
+  let fi = 0;
+  currentCategories = currentCategories.map(c => c.locked ? c : { text: fresh[fi++] || c.text, locked: false });
+  renderCategories();
+  pushHistory();
+}
+
+function toggleCategoryLock(idx) {
+  if (!currentCategories[idx]) return;
+  currentCategories[idx].locked = !currentCategories[idx].locked;
+  renderCategories();
+}
+
+function renderCategories() {
+  const el = document.getElementById('categoryDisplay');
+  if (!currentCategories.length) {
+    el.innerHTML = '<p class="placeholder-text">No categories in pool</p>';
+    document.getElementById('lockHint').style.display = 'none';
+    document.getElementById('lockedCount').style.display = 'none';
+    return;
+  }
+  el.innerHTML = '<ul class="category-list">' +
+    currentCategories.map((c, i) =>
+      '<li class="' + (c.locked ? 'locked' : '') + '" style="animation-delay:' + (i * 0.05) + 's" onclick="toggleCategoryLock(' + i + ')">' +
+      '<span class="cat-num">' + (i + 1) + '.</span>' +
+      '<span class="cat-name">' + c.text + '</span>' +
+      '<span class="lock-icon">' + (c.locked ? '🔒' : '🔓') + '</span>' +
+      '</li>'
+    ).join('') + '</ul>';
+  document.getElementById('lockHint').style.display = 'block';
+  const n = currentCategories.filter(c => c.locked).length;
+  const lc = document.getElementById('lockedCount');
+  if (n > 0) { lc.textContent = n + ' locked'; lc.style.display = 'inline'; }
+  else { lc.style.display = 'none'; }
+}
+
+// ── ROLL ALL ────────────────────────────────────────
+function rollAll() {
+  if (!letterLocked) drawLetter();
+  const count = Math.floor(Math.random() * 2) + 5;
+  currentCategories = pickFresh(count).map(t => ({ text: t, locked: false }));
+  renderCategories();
+  pushHistory();
+  resetTimer();
+}
+
+function pushHistory() {
+  if (!currentLetter && !currentCategories.length) return;
+  history.unshift({ letter: currentLetter, categories: currentCategories.map(c => c.text) });
+  if (history.length > 10) history.pop();
+  renderHistory();
+}
+
+// ── TIMER ───────────────────────────────────────────
+function setPreset(sec) {
+  activePreset = sec;
+  timerSeconds = sec;
+  document.querySelectorAll('.preset-btn').forEach(b =>
+    b.classList.toggle('active', parseInt(b.dataset.sec) === sec));
+  resetTimer();
+}
+
+function setCustomTime() {
+  const m = parseInt(document.getElementById('customMin').value) || 0;
+  const s = parseInt(document.getElementById('customSec').value) || 0;
+  const total = m * 60 + s;
+  if (total > 0) {
+    activePreset = total; timerSeconds = total;
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    resetTimer();
+  }
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(timerSeconds / 60), s = timerSeconds % 60;
+  const el = document.getElementById('timerDisplay');
+  el.textContent = m + ':' + s.toString().padStart(2, '0');
+  el.classList.toggle('warning', timerSeconds <= 10 && timerSeconds > 0);
+}
+
+function toggleTimer() { timerRunning ? pauseTimer() : startTimer(); }
+
+function startTimer() {
+  timerRunning = true;
+  const btn = document.getElementById('timerBtn');
+  btn.textContent = '⏸ Pause'; btn.classList.add('running');
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    updateTimerDisplay();
+    if (timerSeconds <= 0) {
+      clearInterval(timerInterval); timerRunning = false;
+      btn.textContent = '▶ Start Timer'; btn.classList.remove('running');
+      document.getElementById('timerDisplay').textContent = 'TIME!';
+      document.getElementById('timerDisplay').classList.add('warning');
+    }
+  }, 1000);
+}
+
+function pauseTimer() {
+  clearInterval(timerInterval); timerRunning = false;
+  const btn = document.getElementById('timerBtn');
+  btn.textContent = '▶ Start Timer'; btn.classList.remove('running');
+}
+
+function resetTimer() {
+  pauseTimer(); timerSeconds = activePreset;
+  updateTimerDisplay();
+  document.getElementById('timerDisplay').classList.remove('warning');
+}
+
+// ── POOL ─────────────────────────────────────────────
+function togglePool() {
+  document.getElementById('poolBody').classList.toggle('visible');
+  document.getElementById('toggleIcon').classList.toggle('open');
+}
+function loadDefaults() {
+  document.getElementById('categoryPool').value = DEFAULT_CATEGORIES.join('\n');
+  updateMeta();
+}
+function clearPool() {
+  document.getElementById('categoryPool').value = '';
+  updateMeta();
+}
+
+// ── HISTORY ──────────────────────────────────────────
+function renderHistory() {
+  const section = document.getElementById('historySection');
+  const pills = document.getElementById('historyPills');
+  section.style.display = history.length ? 'block' : 'none';
+  pills.innerHTML = history.map(h =>
+    '<div class="history-pill"><span>' + h.letter + '</span>' + h.categories.join(', ') + '</div>'
+  ).join('');
+}
+
+init();
+</script>
+</body>
+</html>
